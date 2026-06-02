@@ -29,6 +29,9 @@ const els = {
   searchInput: document.querySelector("#searchInput"),
   bookingList: document.querySelector("#bookingList"),
   bookingCardTemplate: document.querySelector("#bookingCardTemplate"),
+  customerLookupInput: document.querySelector("#customerLookupInput"),
+  customerLookupList: document.querySelector("#customerLookupList"),
+  latestBookingNotice: document.querySelector("#latestBookingNotice"),
   exportCsv: document.querySelector("#exportCsv"),
   exportJson: document.querySelector("#exportJson"),
   clearAll: document.querySelector("#clearAll"),
@@ -57,6 +60,7 @@ function setupEvents() {
   els.pickupMode.addEventListener("click", () => setMode("pickup"));
   els.bookingForm.addEventListener("submit", handleBookingSubmit);
   els.searchInput.addEventListener("input", renderBookings);
+  els.customerLookupInput?.addEventListener("input", renderCustomerLookup);
   els.exportCsv.addEventListener("click", exportCsv);
   els.exportJson.addEventListener("click", exportJson);
   els.clearAll.addEventListener("click", clearAllBookings);
@@ -175,7 +179,7 @@ function toggleVideoSelection(videoId) {
   } else {
     state.selectedVideoIds.add(videoId);
   }
-  els.fruitQty.value = Math.max(1, state.selectedVideoIds.size);
+  els.fruitQty.value = state.selectedVideoIds.size;
   renderVideos();
   syncSelectedText();
 }
@@ -228,7 +232,7 @@ function handleBookingSubmit(event) {
     fileName: item.fileName,
   }));
 
-  const qty = clampNumber(els.fruitQty.value, 1, 999);
+  const qty = state.selectedVideoIds.size;
   const booking = {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
     createdAt: new Date().toISOString(),
@@ -247,11 +251,12 @@ function handleBookingSubmit(event) {
   saveBookings();
   state.selectedVideoIds.clear();
   els.bookingForm.reset();
-  els.fruitQty.value = 1;
+  els.fruitQty.value = 0;
   renderMode();
   renderVideos();
   syncSelectedText();
   renderBookings();
+  renderCustomerLookup(booking.id);
 }
 
 function renderBookings() {
@@ -283,6 +288,61 @@ function renderBookings() {
   renderStats();
 }
 
+function renderCustomerLookup(latestBookingId = "") {
+  if (!els.customerLookupList) return;
+
+  const query = els.customerLookupInput.value.trim().toLowerCase();
+  const bookings = state.bookings.filter((booking) => {
+    const haystack = searchableBookingText(booking);
+    return !query || haystack.includes(query);
+  });
+
+  els.customerLookupList.innerHTML = "";
+  if (latestBookingId) {
+    const latest = state.bookings.find((booking) => booking.id === latestBookingId);
+    if (latest) {
+      els.latestBookingNotice.hidden = false;
+      els.latestBookingNotice.innerHTML = `
+        <strong>บันทึกการจองแล้ว</strong>
+        <span>รหัสจอง ${escapeHtml(shortBookingId(latest.id))} • ลูกที่เลือก ${escapeHtml(latest.cfSlots.join(", "))}</span>
+      `;
+    }
+  }
+
+  if (!bookings.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-list";
+    empty.textContent = state.bookings.length
+      ? "ไม่พบรายการที่ค้นหาในเครื่องนี้"
+      : "ยังไม่มีรายการจองในเครื่องนี้";
+    els.customerLookupList.appendChild(empty);
+    return;
+  }
+
+  bookings.forEach((booking) => els.customerLookupList.appendChild(createLookupCard(booking)));
+}
+
+function createLookupCard(booking) {
+  const card = document.createElement("article");
+  card.className = "booking-card lookup-card";
+  card.innerHTML = `
+    <div class="booking-card-head">
+      <div>
+        <strong>${escapeHtml(booking.bookerName || "ไม่ระบุชื่อ")}</strong>
+        <span>รหัสจอง ${escapeHtml(shortBookingId(booking.id))} • ${escapeHtml(formatDate(booking.createdAt))}</span>
+      </div>
+    </div>
+    <dl>
+      <div><dt>จำนวน</dt><dd>${escapeHtml(`${booking.fruitQty.toLocaleString("th-TH")} ลูก`)}</dd></div>
+      <div><dt>No.</dt><dd>${escapeHtml(booking.cfSlots.length ? booking.cfSlots.join(", ") : "ไม่ระบุ No.")}</dd></div>
+      <div><dt>รายละเอียด</dt><dd>${escapeHtml(fruitDescriptionText(booking) || "-")}</dd></div>
+      <div><dt>รับสินค้า</dt><dd>${escapeHtml(modeLabel(booking.mode))}</dd></div>
+      <div><dt>หมายเหตุ</dt><dd>${escapeHtml(booking.note || "-")}</dd></div>
+    </dl>
+  `;
+  return card;
+}
+
 function createBookingCard(booking) {
   const card = els.bookingCardTemplate.content.firstElementChild.cloneNode(true);
   card.querySelector("[data-booker]").textContent = booking.bookerName || "ไม่ระบุชื่อ";
@@ -304,6 +364,21 @@ function renderStats() {
   els.totalFruit.textContent = totalFruit.toLocaleString("th-TH");
   els.deliveryCount.textContent = deliveryCount.toLocaleString("th-TH");
   els.pickupCount.textContent = pickupCount.toLocaleString("th-TH");
+}
+
+function searchableBookingText(booking) {
+  return [
+    booking.id,
+    shortBookingId(booking.id),
+    booking.bookerName,
+    booking.receiverName,
+    booking.receiverPhone,
+    booking.receiverAddress,
+    booking.note,
+    booking.cfSlots.join(" "),
+    fruitDescriptionText(booking),
+    modeLabel(booking.mode),
+  ].join(" ").toLowerCase();
 }
 
 function deleteBooking(id) {
@@ -404,6 +479,10 @@ function formatDate(value) {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function shortBookingId(id) {
+  return String(id || "").replace(/-/g, "").slice(0, 8).toUpperCase();
 }
 
 function toCsv(rows) {

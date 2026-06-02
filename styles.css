@@ -154,6 +154,10 @@ p {
   display: none !important;
 }
 
+.admin-mode .customer-only {
+  display: none !important;
+}
+
 .customer-mode .admin-only,
 .customer-mode .remove-video,
 .customer-mode .upload-button {
@@ -174,6 +178,7 @@ p {
 }
 
 .booking-panel,
+.lookup-panel,
 .summary-panel {
   grid-column: 2;
 }
@@ -184,6 +189,7 @@ p {
 
 .video-panel,
 .booking-panel,
+.lookup-panel,
 .summary-panel {
   min-width: 0;
   border: 1px solid var(--line);
@@ -198,6 +204,26 @@ p {
   top: 92px;
   max-height: calc(100vh - 110px);
   overflow: auto;
+}
+
+.latest-booking {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #8fc27a;
+  border-radius: 8px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.latest-booking strong {
+  font-size: 16px;
+}
+
+.latest-booking span {
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .panel-heading {
@@ -310,6 +336,13 @@ textarea {
 
 textarea {
   resize: vertical;
+}
+
+input[readonly] {
+  background: var(--panel-soft);
+  color: var(--green-dark);
+  font-weight: 900;
+  cursor: default;
 }
 
 .confirm-button {
@@ -596,12 +629,14 @@ dd {
   }
 
   .booking-panel,
+  .lookup-panel,
   .summary-panel {
     grid-column: 2;
   }
 
   .customer-mode .video-panel,
   .customer-mode .booking-panel,
+  .customer-mode .lookup-panel,
   .customer-mode .summary-panel {
     grid-column: 1;
     grid-row: auto;
@@ -665,6 +700,7 @@ dd {
 
   .video-panel,
   .booking-panel,
+  .lookup-panel,
   .summary-panel {
     grid-column: auto;
     grid-row: auto;
@@ -693,6 +729,7 @@ dd {
 
   .video-panel,
   .booking-panel,
+  .lookup-panel,
   .summary-panel {
     width: 100%;
     max-width: 100%;
