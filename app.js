@@ -1,4 +1,5 @@
 const storageKey = "durian-booking-reservations-v2";
+const isAdmin = new URLSearchParams(window.location.search).get("admin") === "1";
 
 const state = {
   mode: "delivery",
@@ -36,6 +37,8 @@ const els = {
 init();
 
 function init() {
+  document.body.classList.toggle("admin-mode", isAdmin);
+  document.body.classList.toggle("customer-mode", !isAdmin);
   state.videos = Array.from({ length: 4 }, (_, index) => createVideoItem(index + 1));
   setupEvents();
   renderVideos();
@@ -75,7 +78,7 @@ function renderVideos() {
 
   state.videos.forEach((item, index) => {
     const card = document.createElement("article");
-    card.className = "durian-video-card";
+    card.className = `durian-video-card ${isAdmin ? "admin-card" : "customer-card"}`;
     card.dataset.videoId = item.id;
 
     const isSelected = state.selectedVideoIds.has(item.id);
@@ -116,24 +119,34 @@ function renderVideos() {
     const video = card.querySelector("[data-video-player]");
     if (item.objectUrl) video.src = item.objectUrl;
 
-    card.querySelector("[data-video-no]").addEventListener("input", (event) => {
-      item.no = event.target.value.trim();
-      syncSelectedText();
-      renderBookings();
-      updateCardCfLabel(card, item);
-    });
+    if (isAdmin) {
+      card.querySelector("[data-video-no]").addEventListener("input", (event) => {
+        item.no = event.target.value.trim();
+        syncSelectedText();
+        renderBookings();
+        updateCardCfLabel(card, item);
+      });
 
-    card.querySelector("[data-video-description]").addEventListener("input", (event) => {
-      item.description = event.target.value.trim();
-    });
+      card.querySelector("[data-video-description]").addEventListener("input", (event) => {
+        item.description = event.target.value.trim();
+      });
 
-    card.querySelector("[data-video-input]").addEventListener("change", (event) => {
-      handleVideoUpload(event, item);
-      renderVideos();
-    });
+      card.querySelector("[data-video-input]").addEventListener("change", (event) => {
+        handleVideoUpload(event, item);
+        renderVideos();
+      });
+
+      card.querySelector("[data-remove-video]").addEventListener("click", () => removeVideo(item.id));
+    } else {
+      card.querySelector(".video-card-head").hidden = true;
+      card.querySelector("[data-video-description]").closest("label").hidden = true;
+      const description = document.createElement("p");
+      description.className = "customer-description";
+      description.textContent = item.description || "กด CF ใต้คลิปนี้เพื่อเลือกจองลูกนี้";
+      card.appendChild(description);
+    }
 
     card.querySelector("[data-cf-video]").addEventListener("click", () => toggleVideoSelection(item.id));
-    card.querySelector("[data-remove-video]").addEventListener("click", () => removeVideo(item.id));
     els.videoList.appendChild(card);
   });
 }

@@ -19,6 +19,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   background:
@@ -144,6 +148,18 @@ p {
   color: #fff;
 }
 
+.customer-mode .top-actions,
+.customer-mode .add-button,
+.customer-mode .summary-panel {
+  display: none !important;
+}
+
+.customer-mode .admin-only,
+.customer-mode .remove-video,
+.customer-mode .upload-button {
+  display: none !important;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 390px;
@@ -159,6 +175,10 @@ p {
 
 .booking-panel,
 .summary-panel {
+  grid-column: 2;
+}
+
+.customer-mode .booking-panel {
   grid-column: 2;
 }
 
@@ -353,6 +373,12 @@ textarea {
 .durian-video-card textarea {
   min-height: 54px;
   max-height: 90px;
+}
+
+.customer-description {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .cf-slot {
