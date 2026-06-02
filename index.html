@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>จองทุเรียนลุงทิม</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">ท</div>
+          <div>
+            <h1>จองทุเรียนลุงทิม</h1>
+            <p>หนึ่งลูกต่อหนึ่งวิดีโอ ใส่ No. และคำอธิบาย แล้วให้ลูกค้ากด CF ใต้คลิป</p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button id="exportCsv" type="button" class="ghost-button">Export CSV</button>
+          <button id="exportJson" type="button" class="ghost-button">Export JSON</button>
+          <button id="clearAll" type="button" class="danger-button">ล้างรายการ</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="video-panel" aria-labelledby="videoTitle">
+          <div class="panel-heading">
+            <div>
+              <h2 id="videoTitle">วิดีโอทุเรียนสำหรับกด CF</h2>
+              <p>เพิ่มวิดีโอได้หลายลูก แต่ละวิดีโอมีปุ่ม CF ของตัวเอง</p>
+            </div>
+            <button id="addVideo" type="button" class="add-button">+ เพิ่มวิดีโอ</button>
+          </div>
+
+          <div id="videoList" class="video-list" aria-label="รายการวิดีโอทุเรียน"></div>
+        </section>
+
+        <section class="booking-panel" aria-labelledby="bookingTitle">
+          <div class="panel-heading">
+            <div>
+              <h2 id="bookingTitle">ข้อมูลผู้จอง</h2>
+              <p>เลือกวิธีรับสินค้า แล้วกรอกข้อมูลตามช่องที่จำเป็น</p>
+            </div>
+            <div class="mode-toggle" role="tablist" aria-label="วิธีรับทุเรียน">
+              <button id="deliveryMode" class="active" type="button" role="tab" aria-selected="true">ส่งทางไกล</button>
+              <button id="pickupMode" type="button" role="tab" aria-selected="false">รับที่โรงงาน/บ้าน</button>
+            </div>
+          </div>
+
+          <form id="bookingForm" class="booking-form">
+            <div class="field-group">
+              <label>
+                ชื่อผู้จอง
+                <input id="bookerName" type="text" autocomplete="name" required />
+              </label>
+              <label>
+                จำนวนลูกที่จอง
+                <input id="fruitQty" type="number" min="1" step="1" value="1" required />
+              </label>
+            </div>
+
+            <div id="deliveryFields" class="delivery-fields">
+              <label>
+                ชื่อผู้รับปลายทาง
+                <input id="receiverName" type="text" />
+              </label>
+              <label>
+                เบอร์โทรผู้รับ
+                <input id="receiverPhone" type="tel" inputmode="tel" />
+              </label>
+              <label class="wide">
+                ที่อยู่ปลายทาง
+                <textarea id="receiverAddress" rows="4"></textarea>
+              </label>
+            </div>
+
+            <label class="wide">
+              หมายเหตุการจอง
+              <textarea id="note" rows="3" placeholder="เช่น เอาลูกสุกช้า / ขอขนาดกลาง / นัดรับช่วงเย็น"></textarea>
+            </label>
+
+            <div class="selected-summary">
+              <span>ลูกที่เลือก CF</span>
+              <strong id="selectedSlotsText">ยังไม่ได้เลือก</strong>
+            </div>
+
+            <button class="confirm-button" type="submit">ยืนยันการจอง</button>
+          </form>
+        </section>
+
+        <aside class="summary-panel" aria-labelledby="summaryTitle">
+          <div class="panel-heading">
+            <div>
+              <h2 id="summaryTitle">สรุปรายการจอง</h2>
+              <p>ข้อมูลบันทึกใน browser เครื่องนี้</p>
+            </div>
+          </div>
+
+          <div class="stats">
+            <div>
+              <span>รายการจอง</span>
+              <strong id="bookingCount">0</strong>
+            </div>
+            <div>
+              <span>จำนวนลูก</span>
+              <strong id="totalFruit">0</strong>
+            </div>
+            <div>
+              <span>ส่งทางไกล</span>
+              <strong id="deliveryCount">0</strong>
+            </div>
+            <div>
+              <span>รับเอง</span>
+              <strong id="pickupCount">0</strong>
+            </div>
+          </div>
+
+          <label class="search-box">
+            ค้นหารายการ
+            <input id="searchInput" type="search" placeholder="ชื่อ เบอร์ หรือ No." />
+          </label>
+
+          <div id="bookingList" class="booking-list"></div>
+        </aside>
+      </main>
+    </div>
+
+    <template id="bookingCardTemplate">
+      <article class="booking-card">
+        <div class="booking-card-head">
+          <div>
+            <strong data-booker></strong>
+            <span data-mode></span>
+          </div>
+          <button type="button" data-delete>ลบ</button>
+        </div>
+        <dl>
+          <div><dt>จำนวน</dt><dd data-qty></dd></div>
+          <div><dt>No.</dt><dd data-slots></dd></div>
+          <div><dt>ลูกทุเรียน</dt><dd data-fruits></dd></div>
+          <div><dt>ปลายทาง</dt><dd data-destination></dd></div>
+          <div><dt>หมายเหตุ</dt><dd data-note></dd></div>
+        </dl>
+      </article>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
