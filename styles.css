@@ -583,13 +583,60 @@ dd {
     grid-template-columns: minmax(0, 1fr) 340px;
   }
 
+  .customer-mode .workspace {
+    grid-template-columns: 1fr;
+  }
+
   .video-list {
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  }
+
+  .customer-mode .video-list {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
 
   .booking-panel,
   .summary-panel {
     grid-column: 2;
+  }
+
+  .customer-mode .video-panel,
+  .customer-mode .booking-panel,
+  .customer-mode .summary-panel {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .customer-mode .topbar {
+    position: static;
+    padding: 10px 14px;
+  }
+
+  .customer-mode .workspace {
+    grid-template-columns: 1fr;
+    padding: 10px;
+  }
+
+  .customer-mode .video-panel,
+  .customer-mode .booking-panel {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+  }
+
+  .customer-mode .video-list {
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  }
+
+  .customer-mode .panel-heading {
+    margin-bottom: 10px;
+  }
+
+  .customer-mode .panel-heading p {
+    display: none;
   }
 }
 
@@ -691,9 +738,9 @@ dd {
   }
 
   .video-list {
-    grid-template-columns: repeat(2, minmax(0, 155px));
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     width: 100%;
-    justify-content: start;
+    justify-content: stretch;
   }
 
   .top-actions {
@@ -718,8 +765,17 @@ dd {
 
 @media (max-width: 430px) {
   .video-list {
-    grid-template-columns: repeat(2, minmax(0, 155px));
+    grid-template-columns: 1fr !important;
     gap: 8px;
+  }
+
+  .customer-mode .durian-video-card {
+    width: 100%;
+    max-width: none;
+  }
+
+  .customer-mode .video-frame {
+    aspect-ratio: 16 / 10;
   }
 
   .durian-video-card {
@@ -740,5 +796,27 @@ dd {
 
   .video-empty span {
     font-size: 11px;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 700px) {
+  .customer-mode .workspace {
+    grid-template-columns: 1fr !important;
+  }
+
+  .customer-mode .video-panel,
+  .customer-mode .booking-panel {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+    width: 100% !important;
+  }
+
+  .customer-mode .video-list {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .customer-mode .video-frame {
+    aspect-ratio: 16 / 10;
   }
 }
