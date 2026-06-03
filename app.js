@@ -1,5 +1,14 @@
 const storageKey = "durian-booking-reservations-v2";
 const isAdmin = new URLSearchParams(window.location.search).get("admin") === "1";
+const firebaseVersion = "10.12.5";
+
+const fb = {
+  enabled: false,
+  db: null,
+  api: null,
+  saveTimers: new Map(),
+  seededVideos: false,
+};
 
 const state = {
   mode: "delivery",
@@ -39,7 +48,7 @@ const els = {
 
 init();
 
-function init() {
+async function init() {
   document.body.classList.toggle("admin-mode", isAdmin);
   document.body.classList.toggle("customer-mode", !isAdmin);
   state.videos = Array.from({ length: 4 }, (_, index) => createVideoItem(index + 1));
@@ -47,13 +56,24 @@ function init() {
   renderVideos();
   renderMode();
   renderBookings();
+  renderCustomerLookup();
   syncSelectedText();
+  await initFirebase();
+  if (fb.enabled) {
+    subscribeVideos();
+    subscribeBookings();
+  }
 }
 
 function setupEvents() {
   els.addVideo.addEventListener("click", () => {
-    state.videos.push(createVideoItem(nextVideoNumber()));
-    renderVideos();
+    const item = createVideoItem(nextVideoNumber());
+    if (fb.enabled && isAdmin) {
+      saveVideoItem(item);
+    } else {
+      state.videos.push(item);
+      renderVideos();
+    }
   });
 
   els.deliveryMode.addEventListener("click", () => setMode("delivery"));
@@ -66,14 +86,81 @@ function setupEvents() {
   els.clearAll.addEventListener("click", clearAllBookings);
 }
 
+async function initFirebase() {
+  const config = window.firebaseConfig || {};
+  if (!config.apiKey || String(config.apiKey).includes("PASTE_") || !config.projectId) {
+    console.info("Firebase ยังไม่ได้ตั้งค่า ใช้โหมด local ชั่วคราว");
+    return;
+  }
+
+  try {
+    const appMod = await import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-app.js`);
+    const firestoreMod = await import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-firestore.js`);
+    const app = appMod.initializeApp(config);
+    fb.db = firestoreMod.getFirestore(app);
+    fb.api = { ...firestoreMod };
+    fb.enabled = true;
+  } catch (error) {
+    console.error("เปิด Firebase ไม่สำเร็จ", error);
+    alert("เชื่อมต่อ Firebase ไม่สำเร็จ กรุณาตรวจ firebase-config.js");
+  }
+}
+
 function createVideoItem(number) {
   return {
     id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${number}`,
     no: `No.${String(number).padStart(2, "0")}`,
     description: "",
     objectUrl: "",
+    videoUrl: "",
     fileName: "",
+    sort: number,
   };
+}
+
+function subscribeVideos() {
+  const { collection, onSnapshot, orderBy, query } = fb.api;
+  const videosQuery = query(collection(fb.db, "videos"), orderBy("sort", "asc"));
+
+  onSnapshot(videosQuery, (snapshot) => {
+    if (!snapshot.empty) {
+      state.videos = snapshot.docs.map((docSnapshot, index) => {
+        const data = docSnapshot.data();
+        return {
+          id: docSnapshot.id,
+          no: data.no || `No.${String(index + 1).padStart(2, "0")}`,
+          description: data.description || "",
+          objectUrl: "",
+          videoUrl: data.videoUrl || "",
+          storagePath: data.storagePath || "",
+          fileName: data.fileName || "",
+          sort: Number(data.sort || index + 1),
+        };
+      });
+    } else if (isAdmin && !fb.seededVideos) {
+      fb.seededVideos = true;
+      state.videos.forEach((item, index) => {
+        item.sort = item.sort || index + 1;
+        saveVideoItem(item);
+      });
+    }
+
+    dropMissingSelections();
+    renderVideos();
+    syncSelectedText();
+  });
+}
+
+function subscribeBookings() {
+  const { collection, onSnapshot, orderBy, query } = fb.api;
+  const bookingsQuery = query(collection(fb.db, "bookings"), orderBy("createdAtMs", "desc"));
+
+  onSnapshot(bookingsQuery, (snapshot) => {
+    state.bookings = snapshot.docs.map((docSnapshot) => ({ id: docSnapshot.id, ...docSnapshot.data() }));
+    renderVideos();
+    renderBookings();
+    renderCustomerLookup();
+  });
 }
 
 function renderVideos() {
@@ -96,8 +183,9 @@ function renderVideos() {
         </label>
         <button type="button" class="remove-video" data-remove-video ${state.videos.length === 1 ? "disabled" : ""}>ลบวิดีโอ</button>
       </div>
-      <div class="video-frame ${item.objectUrl ? "has-video" : ""}">
+      <div class="video-frame ${videoSource(item) ? "has-video" : ""}">
         <video data-video-player controls playsinline poster="./assets/durian-video-poster.png"></video>
+        <iframe data-drive-player title="${escapeHtml(item.no || `No.${index + 1}`)}" allow="autoplay; fullscreen" allowfullscreen hidden></iframe>
         <div class="video-no-badge">${escapeHtml(item.no || `No.${index + 1}`)}</div>
         <div class="video-empty">
           <strong>${escapeHtml(item.no || `No.${index + 1}`)}</strong>
@@ -106,7 +194,7 @@ function renderVideos() {
       </div>
       <div class="video-card-actions">
         <label class="upload-button">
-          เลือกวิดีโอ
+          พรีวิวไฟล์
           <input data-video-input type="file" accept="video/*" />
         </label>
         <button type="button" class="cf-slot ${isSelected ? "selected" : ""} ${isReserved ? "reserved" : ""}" data-cf-video ${isReserved ? "disabled" : ""}>
@@ -114,14 +202,18 @@ function renderVideos() {
           <span>${isReserved ? "จองแล้ว" : isSelected ? "เลือกอยู่" : "กด CF ลูกนี้"}</span>
         </button>
       </div>
+      <label class="video-link-field">
+        ลิงก์วิดีโอ Google Drive
+        <input data-video-url type="url" value="${escapeHtml(item.videoUrl || "")}" placeholder="วางลิงก์แชร์ Google Drive ของวิดีโอนี้" />
+      </label>
       <label>
         ข้อความอธิบายลูกทุเรียนในวิดีโอ
         <textarea data-video-description rows="3" placeholder="เช่น ลูกใหญ่ หนามสวย ทรงกลม น้ำหนักประมาณ 3 กก.">${escapeHtml(item.description)}</textarea>
       </label>
     `;
 
-    const video = card.querySelector("[data-video-player]");
-    if (item.objectUrl) video.src = item.objectUrl;
+    const src = videoSource(item);
+    setVideoFrameSource(card, item, src);
 
     if (isAdmin) {
       card.querySelector("[data-video-no]").addEventListener("input", (event) => {
@@ -129,20 +221,29 @@ function renderVideos() {
         syncSelectedText();
         renderBookings();
         updateCardCfLabel(card, item);
+        scheduleSaveVideo(item);
       });
 
       card.querySelector("[data-video-description]").addEventListener("input", (event) => {
         item.description = event.target.value.trim();
+        scheduleSaveVideo(item);
       });
 
       card.querySelector("[data-video-input]").addEventListener("change", (event) => {
         handleVideoUpload(event, item);
-        renderVideos();
+      });
+
+      card.querySelector("[data-video-url]").addEventListener("input", (event) => {
+        item.videoUrl = event.target.value.trim();
+        item.storagePath = "";
+        scheduleSaveVideo(item);
+        setVideoFrameSource(card, item, videoSource(item));
       });
 
       card.querySelector("[data-remove-video]").addEventListener("click", () => removeVideo(item.id));
     } else {
       card.querySelector(".video-card-head").hidden = true;
+      card.querySelector(".video-link-field").hidden = true;
       card.querySelector("[data-video-description]").closest("label").hidden = true;
       const description = document.createElement("p");
       description.className = "customer-description";
@@ -165,12 +266,71 @@ function updateCardCfLabel(card, item) {
   badge.textContent = label;
 }
 
-function handleVideoUpload(event, item) {
+function scheduleSaveVideo(item) {
+  if (!fb.enabled || !isAdmin) return;
+  clearTimeout(fb.saveTimers.get(item.id));
+  fb.saveTimers.set(
+    item.id,
+    setTimeout(() => {
+      saveVideoItem(item);
+      fb.saveTimers.delete(item.id);
+    }, 500)
+  );
+}
+
+async function saveVideoItem(item) {
+  if (!fb.enabled || !isAdmin) return;
+
+  const { doc, serverTimestamp, setDoc } = fb.api;
+  const sort = Number(item.sort || extractVideoNumber(item.no) || state.videos.indexOf(item) + 1);
+
+  await setDoc(
+    doc(fb.db, "videos", item.id),
+    {
+      no: item.no || `No.${String(sort).padStart(2, "0")}`,
+      description: item.description || "",
+      videoUrl: item.videoUrl || "",
+      fileName: item.fileName || "",
+      storagePath: item.storagePath || "",
+      sort,
+      updatedAtMs: Date.now(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+function videoSource(item) {
+  return item.videoUrl || item.objectUrl || "";
+}
+
+function setVideoFrameSource(card, item, src) {
+  const video = card.querySelector("[data-video-player]");
+  const driveFrame = card.querySelector("[data-drive-player]");
+  const drivePreview = googleDrivePreviewUrl(item.videoUrl);
+
+  if (drivePreview) {
+    video.removeAttribute("src");
+    video.hidden = true;
+    driveFrame.hidden = false;
+    driveFrame.src = drivePreview;
+    return;
+  }
+
+  driveFrame.removeAttribute("src");
+  driveFrame.hidden = true;
+  video.hidden = false;
+  if (src) video.src = src;
+}
+
+async function handleVideoUpload(event, item) {
   const file = event.target.files?.[0];
   if (!file) return;
   if (item.objectUrl) URL.revokeObjectURL(item.objectUrl);
   item.objectUrl = URL.createObjectURL(file);
   item.fileName = file.name;
+  renderVideos();
+  alert("ไฟล์นี้เป็นพรีวิวในเครื่องเท่านั้น ถ้าต้องการให้ลูกค้าเห็น ให้ใส่ลิงก์ Google Drive ในช่องลิงก์วิดีโอ");
 }
 
 function toggleVideoSelection(videoId) {
@@ -184,10 +344,17 @@ function toggleVideoSelection(videoId) {
   syncSelectedText();
 }
 
-function removeVideo(videoId) {
+async function removeVideo(videoId) {
   if (state.videos.length <= 1) return;
   const item = state.videos.find((video) => video.id === videoId);
   if (item?.objectUrl) URL.revokeObjectURL(item.objectUrl);
+
+  if (fb.enabled && isAdmin) {
+    const { deleteDoc, doc } = fb.api;
+    await deleteDoc(doc(fb.db, "videos", videoId));
+    return;
+  }
+
   state.videos = state.videos.filter((video) => video.id !== videoId);
   state.selectedVideoIds.delete(videoId);
   renderVideos();
@@ -218,7 +385,7 @@ function syncSelectedText() {
     : "ยังไม่ได้เลือก";
 }
 
-function handleBookingSubmit(event) {
+async function handleBookingSubmit(event) {
   event.preventDefault();
 
   if (!state.selectedVideoIds.size) {
@@ -236,6 +403,7 @@ function handleBookingSubmit(event) {
   const booking = {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
     createdAt: new Date().toISOString(),
+    createdAtMs: Date.now(),
     mode: state.mode,
     bookerName: els.bookerName.value.trim(),
     fruitQty: qty,
@@ -247,8 +415,23 @@ function handleBookingSubmit(event) {
     note: els.note.value.trim(),
   };
 
-  state.bookings.unshift(booking);
-  saveBookings();
+  if (fb.enabled) {
+    try {
+      const { addDoc, collection } = fb.api;
+      const { id, ...bookingData } = booking;
+      const docRef = await addDoc(collection(fb.db, "bookings"), bookingData);
+      booking.id = docRef.id;
+      state.bookings.unshift(booking);
+    } catch (error) {
+      console.error("Save booking failed", error);
+      alert("บันทึกการจองไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      return;
+    }
+  } else {
+    state.bookings.unshift(booking);
+    saveBookings();
+  }
+
   state.selectedVideoIds.clear();
   els.bookingForm.reset();
   els.fruitQty.value = 0;
@@ -381,16 +564,32 @@ function searchableBookingText(booking) {
   ].join(" ").toLowerCase();
 }
 
-function deleteBooking(id) {
+async function deleteBooking(id) {
+  if (fb.enabled && isAdmin) {
+    const { deleteDoc, doc } = fb.api;
+    await deleteDoc(doc(fb.db, "bookings", id));
+    return;
+  }
+
   state.bookings = state.bookings.filter((booking) => booking.id !== id);
   saveBookings();
   renderVideos();
   renderBookings();
 }
 
-function clearAllBookings() {
+async function clearAllBookings() {
   if (!state.bookings.length) return;
-  if (!confirm("ล้างรายการจองทั้งหมดในเครื่องนี้หรือไม่?")) return;
+  if (!confirm(fb.enabled ? "ล้างรายการจองทั้งหมดจากระบบกลางหรือไม่?" : "ล้างรายการจองทั้งหมดในเครื่องนี้หรือไม่?")) return;
+
+  if (fb.enabled && isAdmin) {
+    const { collection, deleteDoc, getDocs } = fb.api;
+    const snapshot = await getDocs(collection(fb.db, "bookings"));
+    await Promise.all(snapshot.docs.map((docSnapshot) => deleteDoc(docSnapshot.ref)));
+    state.selectedVideoIds.clear();
+    syncSelectedText();
+    return;
+  }
+
   state.bookings = [];
   state.selectedVideoIds.clear();
   saveBookings();
@@ -462,6 +661,37 @@ function modeLabel(mode) {
 
 function nextVideoNumber() {
   return state.videos.length + 1;
+}
+
+function dropMissingSelections() {
+  const existingIds = new Set(state.videos.map((item) => item.id));
+  state.selectedVideoIds.forEach((id) => {
+    if (!existingIds.has(id)) state.selectedVideoIds.delete(id);
+  });
+  els.fruitQty.value = state.selectedVideoIds.size;
+}
+
+function extractVideoNumber(value) {
+  const match = String(value || "").match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+function googleDrivePreviewUrl(value) {
+  const fileId = googleDriveFileId(value);
+  return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : "";
+}
+
+function googleDriveFileId(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  const pathMatch = text.match(/\/file\/d\/([^/?#]+)/);
+  if (pathMatch) return pathMatch[1];
+
+  const idMatch = text.match(/[?&]id=([^&#]+)/);
+  if (idMatch) return idMatch[1];
+
+  return "";
 }
 
 function normalizeNo(value) {

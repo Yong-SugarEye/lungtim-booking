@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>จองทุเรียนลุงทิม</title>
-    <link rel="stylesheet" href="./styles.css?v=qty-readonly-1" />
+    <link rel="stylesheet" href="./styles.css?v=firebase-2" />
   </head>
   <body>
     <div class="app-shell">
@@ -93,7 +93,7 @@
           <div class="panel-heading">
             <div>
               <h2 id="lookupTitle">ตรวจสอบการจองของฉัน</h2>
-              <p>ค้นจากชื่อผู้จอง เบอร์โทร หรือ No. ลูกทุเรียน บนเครื่องที่ใช้จอง</p>
+              <p>ค้นจากชื่อผู้จอง เบอร์โทร หรือ No. ลูกทุเรียน</p>
             </div>
           </div>
 
@@ -110,7 +110,7 @@
           <div class="panel-heading">
             <div>
               <h2 id="summaryTitle">สรุปรายการจอง</h2>
-              <p>ข้อมูลบันทึกใน browser เครื่องนี้</p>
+              <p>ข้อมูลจองจะแสดงจากระบบกลางเมื่อเปิด Firebase</p>
             </div>
           </div>
 
@@ -162,6 +162,7 @@
       </article>
     </template>
 
-    <script src="./app.js?v=qty-readonly-1"></script>
+    <script src="./firebase-config.js?v=firebase-2"></script>
+    <script src="./app.js?v=firebase-2"></script>
   </body>
 </html>
