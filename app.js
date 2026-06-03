@@ -185,7 +185,6 @@ function renderVideos() {
       </div>
       <div class="video-frame ${videoSource(item) ? "has-video" : ""}">
         <video data-video-player controls playsinline poster="./assets/durian-video-poster.png"></video>
-        <iframe data-drive-player title="${escapeHtml(item.no || `No.${index + 1}`)}" allow="autoplay; fullscreen" allowfullscreen hidden></iframe>
         <div class="video-no-badge">${escapeHtml(item.no || `No.${index + 1}`)}</div>
         <div class="video-empty">
           <strong>${escapeHtml(item.no || `No.${index + 1}`)}</strong>
@@ -306,21 +305,15 @@ function videoSource(item) {
 
 function setVideoFrameSource(card, item, src) {
   const video = card.querySelector("[data-video-player]");
-  const driveFrame = card.querySelector("[data-drive-player]");
-  const drivePreview = googleDrivePreviewUrl(item.videoUrl);
-
-  if (drivePreview) {
-    video.removeAttribute("src");
-    video.hidden = true;
-    driveFrame.hidden = false;
-    driveFrame.src = drivePreview;
-    return;
-  }
-
-  driveFrame.removeAttribute("src");
-  driveFrame.hidden = true;
   video.hidden = false;
-  if (src) video.src = src;
+  const driveVideo = googleDriveVideoUrl(item.videoUrl);
+  if (driveVideo) {
+    video.src = driveVideo;
+  } else if (src) {
+    video.src = src;
+  } else {
+    video.removeAttribute("src");
+  }
 }
 
 async function handleVideoUpload(event, item) {
@@ -676,9 +669,9 @@ function extractVideoNumber(value) {
   return match ? Number(match[0]) : 0;
 }
 
-function googleDrivePreviewUrl(value) {
+function googleDriveVideoUrl(value) {
   const fileId = googleDriveFileId(value);
-  return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : "";
+  return fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : "";
 }
 
 function googleDriveFileId(value) {
