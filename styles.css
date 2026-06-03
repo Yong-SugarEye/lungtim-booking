@@ -265,7 +265,7 @@ p {
 }
 
 .video-frame video,
-.video-frame iframe {
+.drive-video-link {
   display: block;
   width: 100%;
   height: 100%;
@@ -278,12 +278,45 @@ p {
   background: #101811;
 }
 
-.video-frame iframe {
-  background: #101811;
+.video-frame.drive-frame {
+  aspect-ratio: 4 / 3;
+  background: #162016;
 }
 
-.video-frame.drive-frame {
-  aspect-ratio: 9 / 13;
+.drive-video-link {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  text-decoration: none;
+}
+
+.drive-video-link img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+}
+
+.drive-video-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.42));
+}
+
+.drive-play-button {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #174c2e;
+  font-weight: 800;
+  padding: 8px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
 }
 
 .video-empty {
@@ -819,7 +852,7 @@ dd {
   }
 
   .video-frame.drive-frame {
-    aspect-ratio: 9 / 13;
+    aspect-ratio: 4 / 3;
   }
 }
 
@@ -839,7 +872,7 @@ dd {
   }
 
   .customer-mode .video-frame.drive-frame {
-    aspect-ratio: 9 / 13;
+    aspect-ratio: 4 / 3;
   }
 
   .durian-video-card {
@@ -885,6 +918,6 @@ dd {
   }
 
   .customer-mode .video-frame.drive-frame {
-    aspect-ratio: 9 / 13;
+    aspect-ratio: 4 / 3;
   }
 }

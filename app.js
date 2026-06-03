@@ -185,7 +185,10 @@ function renderVideos() {
       </div>
       <div class="video-frame ${videoSource(item) ? "has-video" : ""}">
         <video data-video-player controls playsinline poster="./assets/durian-video-poster.png"></video>
-        <iframe data-drive-player title="${escapeHtml(item.no || `No.${index + 1}`)}" allow="autoplay; fullscreen" allowfullscreen hidden></iframe>
+        <a data-drive-link class="drive-video-link" target="_blank" rel="noopener" hidden>
+          <img data-drive-thumb alt="" />
+          <span class="drive-play-button">ดูวิดีโอ</span>
+        </a>
         <div class="video-no-badge">${escapeHtml(item.no || `No.${index + 1}`)}</div>
         <div class="video-empty">
           <strong>${escapeHtml(item.no || `No.${index + 1}`)}</strong>
@@ -307,24 +310,29 @@ function videoSource(item) {
 function setVideoFrameSource(card, item, src) {
   const frame = card.querySelector(".video-frame");
   const video = card.querySelector("[data-video-player]");
-  const driveFrame = card.querySelector("[data-drive-player]");
-  const drivePreview = googleDrivePreviewUrl(item.videoUrl);
+  const driveLink = card.querySelector("[data-drive-link]");
+  const driveThumb = card.querySelector("[data-drive-thumb]");
+  const driveView = googleDriveViewUrl(item.videoUrl);
 
-  frame.classList.toggle("drive-frame", Boolean(drivePreview));
+  frame.classList.toggle("drive-frame", Boolean(driveView));
 
-  if (drivePreview) {
+  if (driveView) {
     video.removeAttribute("src");
     video.hidden = true;
-    driveFrame.hidden = false;
-    driveFrame.src = drivePreview;
+    driveLink.hidden = false;
+    driveLink.href = driveView;
+    driveThumb.src = googleDriveThumbnailUrl(item.videoUrl);
+    driveThumb.alt = `วิดีโอ ${item.no || ""}`.trim();
   } else if (src) {
-    driveFrame.removeAttribute("src");
-    driveFrame.hidden = true;
+    driveLink.removeAttribute("href");
+    driveLink.hidden = true;
+    driveThumb.removeAttribute("src");
     video.hidden = false;
     video.src = src;
   } else {
-    driveFrame.removeAttribute("src");
-    driveFrame.hidden = true;
+    driveLink.removeAttribute("href");
+    driveLink.hidden = true;
+    driveThumb.removeAttribute("src");
     video.hidden = false;
     video.removeAttribute("src");
   }
@@ -683,9 +691,14 @@ function extractVideoNumber(value) {
   return match ? Number(match[0]) : 0;
 }
 
-function googleDrivePreviewUrl(value) {
+function googleDriveViewUrl(value) {
   const fileId = googleDriveFileId(value);
-  return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : "";
+  return fileId ? `https://drive.google.com/file/d/${fileId}/view` : "";
+}
+
+function googleDriveThumbnailUrl(value) {
+  const fileId = googleDriveFileId(value);
+  return fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000` : "";
 }
 
 function googleDriveFileId(value) {
