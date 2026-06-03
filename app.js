@@ -41,6 +41,10 @@ const els = {
   customerLookupInput: document.querySelector("#customerLookupInput"),
   customerLookupList: document.querySelector("#customerLookupList"),
   latestBookingNotice: document.querySelector("#latestBookingNotice"),
+  videoModal: document.querySelector("#videoModal"),
+  videoModalTitle: document.querySelector("#videoModalTitle"),
+  videoModalFrame: document.querySelector("#videoModalFrame"),
+  closeVideoModal: document.querySelector("#closeVideoModal"),
   exportCsv: document.querySelector("#exportCsv"),
   exportJson: document.querySelector("#exportJson"),
   clearAll: document.querySelector("#clearAll"),
@@ -84,6 +88,13 @@ function setupEvents() {
   els.exportCsv.addEventListener("click", exportCsv);
   els.exportJson.addEventListener("click", exportJson);
   els.clearAll.addEventListener("click", clearAllBookings);
+  els.closeVideoModal?.addEventListener("click", closeVideoModal);
+  els.videoModal?.addEventListener("click", (event) => {
+    if (event.target.matches("[data-modal-close]")) closeVideoModal();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !els.videoModal.hidden) closeVideoModal();
+  });
 }
 
 async function initFirebase() {
@@ -185,10 +196,10 @@ function renderVideos() {
       </div>
       <div class="video-frame ${videoSource(item) ? "has-video" : ""}">
         <video data-video-player controls playsinline poster="./assets/durian-video-poster.png"></video>
-        <a data-drive-link class="drive-video-link" target="_blank" rel="noopener" hidden>
+        <button type="button" data-drive-open class="drive-video-link" hidden>
           <img data-drive-thumb alt="" />
           <span class="drive-play-button">ดูวิดีโอ</span>
-        </a>
+        </button>
         <div class="video-no-badge">${escapeHtml(item.no || `No.${index + 1}`)}</div>
         <div class="video-empty">
           <strong>${escapeHtml(item.no || `No.${index + 1}`)}</strong>
@@ -217,6 +228,7 @@ function renderVideos() {
 
     const src = videoSource(item);
     setVideoFrameSource(card, item, src);
+    card.querySelector("[data-drive-open]").addEventListener("click", () => openVideoModal(item));
 
     if (isAdmin) {
       card.querySelector("[data-video-no]").addEventListener("input", (event) => {
@@ -310,32 +322,44 @@ function videoSource(item) {
 function setVideoFrameSource(card, item, src) {
   const frame = card.querySelector(".video-frame");
   const video = card.querySelector("[data-video-player]");
-  const driveLink = card.querySelector("[data-drive-link]");
+  const driveButton = card.querySelector("[data-drive-open]");
   const driveThumb = card.querySelector("[data-drive-thumb]");
-  const driveView = googleDriveViewUrl(item.videoUrl);
+  const drivePreview = googleDrivePreviewUrl(item.videoUrl);
 
-  frame.classList.toggle("drive-frame", Boolean(driveView));
+  frame.classList.toggle("drive-frame", Boolean(drivePreview));
 
-  if (driveView) {
+  if (drivePreview) {
     video.removeAttribute("src");
     video.hidden = true;
-    driveLink.hidden = false;
-    driveLink.href = driveView;
+    driveButton.hidden = false;
     driveThumb.src = googleDriveThumbnailUrl(item.videoUrl);
     driveThumb.alt = `วิดีโอ ${item.no || ""}`.trim();
   } else if (src) {
-    driveLink.removeAttribute("href");
-    driveLink.hidden = true;
+    driveButton.hidden = true;
     driveThumb.removeAttribute("src");
     video.hidden = false;
     video.src = src;
   } else {
-    driveLink.removeAttribute("href");
-    driveLink.hidden = true;
+    driveButton.hidden = true;
     driveThumb.removeAttribute("src");
     video.hidden = false;
     video.removeAttribute("src");
   }
+}
+
+function openVideoModal(item) {
+  const previewUrl = googleDrivePreviewUrl(item.videoUrl);
+  if (!previewUrl) return;
+  els.videoModalTitle.textContent = item.no ? `วิดีโอ ${item.no}` : "วิดีโอทุเรียน";
+  els.videoModalFrame.src = previewUrl;
+  els.videoModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeVideoModal() {
+  els.videoModal.hidden = true;
+  els.videoModalFrame.removeAttribute("src");
+  document.body.classList.remove("modal-open");
 }
 
 async function handleVideoUpload(event, item) {
@@ -691,9 +715,9 @@ function extractVideoNumber(value) {
   return match ? Number(match[0]) : 0;
 }
 
-function googleDriveViewUrl(value) {
+function googleDrivePreviewUrl(value) {
   const fileId = googleDriveFileId(value);
-  return fileId ? `https://drive.google.com/file/d/${fileId}/view` : "";
+  return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : "";
 }
 
 function googleDriveThumbnailUrl(value) {

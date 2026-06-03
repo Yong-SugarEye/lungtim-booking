@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>จองทุเรียนลุงทิม</title>
-    <link rel="stylesheet" href="./styles.css?v=drive-4" />
+    <link rel="stylesheet" href="./styles.css?v=drive-5" />
   </head>
   <body>
     <div class="app-shell">
@@ -143,6 +143,17 @@
       </main>
     </div>
 
+    <div id="videoModal" class="video-modal" hidden>
+      <button type="button" class="video-modal-backdrop" data-modal-close aria-label="ปิดวิดีโอ"></button>
+      <section class="video-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="videoModalTitle">
+        <div class="video-modal-head">
+          <h2 id="videoModalTitle">วิดีโอทุเรียน</h2>
+          <button id="closeVideoModal" type="button">ปิด</button>
+        </div>
+        <iframe id="videoModalFrame" title="วิดีโอทุเรียน" allow="autoplay; fullscreen" allowfullscreen></iframe>
+      </section>
+    </div>
+
     <template id="bookingCardTemplate">
       <article class="booking-card">
         <div class="booking-card-head">
@@ -162,7 +173,7 @@
       </article>
     </template>
 
-    <script src="./firebase-config.js?v=drive-4"></script>
-    <script src="./app.js?v=drive-4"></script>
+    <script src="./firebase-config.js?v=drive-5"></script>
+    <script src="./app.js?v=drive-5"></script>
   </body>
 </html>
