@@ -185,6 +185,7 @@ function renderVideos() {
       </div>
       <div class="video-frame ${videoSource(item) ? "has-video" : ""}">
         <video data-video-player controls playsinline poster="./assets/durian-video-poster.png"></video>
+        <iframe data-drive-player title="${escapeHtml(item.no || `No.${index + 1}`)}" allow="autoplay; fullscreen" allowfullscreen hidden></iframe>
         <div class="video-no-badge">${escapeHtml(item.no || `No.${index + 1}`)}</div>
         <div class="video-empty">
           <strong>${escapeHtml(item.no || `No.${index + 1}`)}</strong>
@@ -304,14 +305,27 @@ function videoSource(item) {
 }
 
 function setVideoFrameSource(card, item, src) {
+  const frame = card.querySelector(".video-frame");
   const video = card.querySelector("[data-video-player]");
-  video.hidden = false;
-  const driveVideo = googleDriveVideoUrl(item.videoUrl);
-  if (driveVideo) {
-    video.src = driveVideo;
+  const driveFrame = card.querySelector("[data-drive-player]");
+  const drivePreview = googleDrivePreviewUrl(item.videoUrl);
+
+  frame.classList.toggle("drive-frame", Boolean(drivePreview));
+
+  if (drivePreview) {
+    video.removeAttribute("src");
+    video.hidden = true;
+    driveFrame.hidden = false;
+    driveFrame.src = drivePreview;
   } else if (src) {
+    driveFrame.removeAttribute("src");
+    driveFrame.hidden = true;
+    video.hidden = false;
     video.src = src;
   } else {
+    driveFrame.removeAttribute("src");
+    driveFrame.hidden = true;
+    video.hidden = false;
     video.removeAttribute("src");
   }
 }
@@ -669,9 +683,9 @@ function extractVideoNumber(value) {
   return match ? Number(match[0]) : 0;
 }
 
-function googleDriveVideoUrl(value) {
+function googleDrivePreviewUrl(value) {
   const fileId = googleDriveFileId(value);
-  return fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : "";
+  return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : "";
 }
 
 function googleDriveFileId(value) {

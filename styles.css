@@ -264,13 +264,26 @@ p {
   aspect-ratio: 4 / 3;
 }
 
-.video-frame video {
+.video-frame video,
+.video-frame iframe {
   display: block;
   width: 100%;
   height: 100%;
+  border: 0;
+}
+
+.video-frame video {
   object-fit: cover;
   object-position: center center;
   background: #101811;
+}
+
+.video-frame iframe {
+  background: #101811;
+}
+
+.video-frame.drive-frame {
+  aspect-ratio: 9 / 13;
 }
 
 .video-empty {
@@ -804,6 +817,10 @@ dd {
   .video-frame {
     aspect-ratio: 1 / 1;
   }
+
+  .video-frame.drive-frame {
+    aspect-ratio: 9 / 13;
+  }
 }
 
 @media (max-width: 430px) {
@@ -819,6 +836,10 @@ dd {
 
   .customer-mode .video-frame {
     aspect-ratio: 16 / 10;
+  }
+
+  .customer-mode .video-frame.drive-frame {
+    aspect-ratio: 9 / 13;
   }
 
   .durian-video-card {
@@ -861,5 +882,9 @@ dd {
 
   .customer-mode .video-frame {
     aspect-ratio: 16 / 10;
+  }
+
+  .customer-mode .video-frame.drive-frame {
+    aspect-ratio: 9 / 13;
   }
 }
