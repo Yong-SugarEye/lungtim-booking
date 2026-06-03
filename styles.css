@@ -336,7 +336,7 @@ body.modal-open {
   z-index: 50;
   display: grid;
   place-items: center;
-  padding: 18px;
+  padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
 }
 
 .video-modal-backdrop {
@@ -350,8 +350,9 @@ body.modal-open {
   position: relative;
   z-index: 1;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   width: min(920px, 100%);
-  max-height: min(760px, calc(100dvh - 28px));
+  height: min(760px, calc(100dvh - 16px));
   overflow: hidden;
   border-radius: 8px;
   background: #101811;
@@ -363,7 +364,8 @@ body.modal-open {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 12px;
+  min-height: 48px;
+  padding: 6px 10px;
   background: #fff;
 }
 
@@ -384,7 +386,8 @@ body.modal-open {
 
 .video-modal iframe {
   width: 100%;
-  height: min(680px, calc(100dvh - 92px));
+  height: 100%;
+  min-height: 0;
   border: 0;
   background: #101811;
 }
@@ -837,6 +840,31 @@ dd {
 }
 
 @media (max-width: 620px) {
+  .video-modal {
+    align-items: stretch;
+    padding: max(6px, env(safe-area-inset-top)) 6px max(6px, env(safe-area-inset-bottom));
+  }
+
+  .video-modal-dialog {
+    width: 100%;
+    height: calc(100dvh - 12px);
+    border-radius: 8px;
+  }
+
+  .video-modal-head {
+    min-height: 42px;
+    padding: 5px 8px;
+  }
+
+  .video-modal-head h2 {
+    font-size: 15px;
+  }
+
+  .video-modal-head button {
+    min-height: 34px;
+    padding: 0 12px;
+  }
+
   .app-shell,
   .topbar,
   .workspace {
