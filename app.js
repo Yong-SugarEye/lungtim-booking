@@ -717,7 +717,7 @@ function extractVideoNumber(value) {
 
 function googleDrivePreviewUrl(value) {
   const fileId = googleDriveFileId(value);
-  return fileId ? `https://drive.google.com/file/d/${fileId}/preview?autoplay=1` : "";
+  return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : "";
 }
 
 function googleDriveThumbnailUrl(value) {
